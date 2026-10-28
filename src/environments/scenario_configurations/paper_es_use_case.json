@@ -1,0 +1,21 @@
+{
+  "configuration": [3],
+  "trafficModel": [4],
+  "positionAllocator": [2],
+  "ues": [9],
+  "simTime": [10],
+  "indicationPeriodicity": [0.1],
+  "heuristicType": [-1],
+  "controlFileName": ["es_actions_for_ns3.csv"],
+  "useSemaphores": [1],
+  "e2nrEnabled": [1],
+  "e2lteEnabled": [1],
+  "enableE2FileLogging": [1],
+  "e2du": [1],
+  "e2cuUp": [1],
+  "e2cuCp": [1],
+  "handoverMode": ["DynamicTtt"],
+  "outageThreshold": [-5],
+  "numberOfRaPreambles": [40],
+  "RngRun": [555]
+}
