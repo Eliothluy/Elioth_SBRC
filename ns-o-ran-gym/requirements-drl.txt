@@ -1,0 +1,12 @@
+# Optional DRL dependencies for Frente C (paper implementation).
+#
+#   pip install -r requirements-drl.txt
+#
+# The base nsoran package (gymnasium, numpy, pandas, posix-ipc, sem) must be
+# installed too: pip install -e .
+numpy>=1.24
+torch>=2.0
+stable-baselines3>=2.2
+matplotlib>=3.7
+tensorboard>=2.13
+pytest>=7.0
