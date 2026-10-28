@@ -1,0 +1,94 @@
+{
+  "experiment": "baselines_5seeds",
+  "purpose": "Reproduzir os baselines do artigo em 5 seeds (Tabela de §V-B).",
+  "scenario_config": "src/environments/scenario_configurations/paper_es_use_case.json",
+  "scenario_sha256": "3def717c0f34ac609aad8cddcd3886282f266262931dd95ffd1dad792e83f2e8",
+  "ns3_path": "../ns-3-mmwave-oran",
+  "sim_time_s": 10,
+  "indication_periodicity_s": 0.1,
+  "expected_indications_per_run": 99,
+  "seeds": [
+    555,
+    556,
+    557,
+    558,
+    559
+  ],
+  "policies": [
+    {
+      "name": "always_on",
+      "policy": "keep",
+      "tuple": null
+    },
+    {
+      "name": "random",
+      "policy": "random",
+      "tuple": null
+    },
+    {
+      "name": "static_4_2_0_1",
+      "policy": "static",
+      "tuple": [
+        4,
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "name": "static_3_2_0_2",
+      "policy": "static",
+      "tuple": [
+        3,
+        2,
+        0,
+        2
+      ]
+    },
+    {
+      "name": "static_2_2_0_3",
+      "policy": "static",
+      "tuple": [
+        2,
+        2,
+        0,
+        3
+      ]
+    },
+    {
+      "name": "dynamic_4_2_0_1",
+      "policy": "dynamic",
+      "tuple": [
+        4,
+        2,
+        0,
+        1
+      ]
+    },
+    {
+      "name": "dynamic_3_2_0_2",
+      "policy": "dynamic",
+      "tuple": [
+        3,
+        2,
+        0,
+        2
+      ]
+    },
+    {
+      "name": "dynamic_2_2_0_3",
+      "policy": "dynamic",
+      "tuple": [
+        2,
+        2,
+        0,
+        3
+      ]
+    }
+  ],
+  "runs_total": 40,
+  "runs_existing_ok": 21,
+  "runs_to_collect": 19,
+  "command": ".venv/bin/python scripts/run_paper_baselines.py --config src/environments/scenario_configurations/paper_es_use_case.json --ns3-path ../ns-3-mmwave-oran --output-dir examples/output/real_runs --seeds 555 556 557 558 559 --policies always_on random static dynamic --workers 6",
+  "acceptance": "40/40 runs ok, 99 indications each, no crash, regenerated reproduction-results.csv"
+}

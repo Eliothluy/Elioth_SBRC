@@ -1,0 +1,44 @@
+{
+  "experiment": "cost_model",
+  "measured_wall_seconds_per_run": {
+    "min": 4100,
+    "max": 5080,
+    "mean": 4680
+  },
+  "workers": 6,
+  "ram_per_run_gb": 1.8,
+  "disk_per_run_mb": {
+    "raw_traces": 233,
+    "retained_after_ingestion": 5,
+    "database_db_only": 2.4,
+    "note": "database.db = 2.4 MB; + bsState.txt + EsActions.txt + log + manifest ~= 5 MB. Delete raw traces only after collect_real_dataset.py validates ingestion."
+  },
+  "tiers": {
+    "S": {
+      "sim_runs": 181,
+      "trainings": 12,
+      "cpu_hours": 235,
+      "days_6_workers": 1.7,
+      "disk_gb_raw": 45,
+      "disk_gb_retained": 1
+    },
+    "M": {
+      "sim_runs": 554,
+      "trainings": 42,
+      "cpu_hours": 720,
+      "days_6_workers": 5.0,
+      "disk_gb_raw": 130,
+      "disk_gb_retained": 3
+    },
+    "L": {
+      "sim_runs": 3130,
+      "trainings": 42,
+      "cpu_hours": 4070,
+      "days_6_workers": 28,
+      "disk_gb_raw": 730,
+      "disk_gb_retained": 16,
+      "feasible": false,
+      "reason": "inviavel por tempo (~28 dias de CPU dedicados); o disco deixa de ser limitante com retencao seletiva"
+    }
+  }
+}

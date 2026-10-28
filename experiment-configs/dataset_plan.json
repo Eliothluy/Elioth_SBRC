@@ -1,0 +1,91 @@
+{
+  "experiment": "dataset_tierM",
+  "purpose": "Coletar 400 runs de comportamento para treino offline (13% da escala do artigo).",
+  "scenario_config": "src/environments/scenario_configurations/paper_es_use_case.json",
+  "scenario_sha256": "3def717c0f34ac609aad8cddcd3886282f266262931dd95ffd1dad792e83f2e8",
+  "ns3_path": "../ns-3-mmwave-oran",
+  "runs_total": 400,
+  "expected_transitions": 39600,
+  "paper_scale_transitions": 300000,
+  "fraction_of_paper_scale": 0.132,
+  "behavior_policies": [
+    {
+      "name": "keep",
+      "policy": "keep",
+      "runs": 50,
+      "seed_start": 1000
+    },
+    {
+      "name": "random",
+      "policy": "random",
+      "runs": 100,
+      "seed_start": 2000
+    },
+    {
+      "name": "random-seconds",
+      "policy": "random-seconds",
+      "runs": 100,
+      "seed_start": 3000
+    },
+    {
+      "name": "static",
+      "policy": "static",
+      "runs": 75,
+      "seed_start": 4000,
+      "tuples": [
+        [
+          4,
+          2,
+          0,
+          1
+        ],
+        [
+          3,
+          2,
+          0,
+          2
+        ],
+        [
+          2,
+          2,
+          0,
+          3
+        ]
+      ],
+      "runs_per_tuple": 25
+    },
+    {
+      "name": "dynamic",
+      "policy": "dynamic",
+      "runs": 75,
+      "seed_start": 5000,
+      "tuples": [
+        [
+          4,
+          2,
+          0,
+          1
+        ],
+        [
+          3,
+          2,
+          0,
+          2
+        ],
+        [
+          2,
+          2,
+          0,
+          3
+        ]
+      ],
+      "runs_per_tuple": 25
+    }
+  ],
+  "workers": 6,
+  "estimated_wall_hours": 520,
+  "disk_gb": 94,
+  "command": ".venv/bin/python scripts/collect_dataset_campaign.py --config src/environments/scenario_configurations/paper_es_use_case.json --ns3-path ../ns-3-mmwave-oran --output-dir examples/output/dataset_runs --plan experiment-configs/dataset_plan.json --workers 6",
+  "note": "collect_dataset_campaign.py precisa ser criado; nao existe hoje.",
+  "acceptance": ">=380/400 runs ok, manifest with seed and command per run, all 5 behavior policies covered"
+}

@@ -1,0 +1,115 @@
+{
+  "experiment": "training_matrix_tierM",
+  "purpose": "Treinar os 6 agentes da Tabela I em 3 seeds (18 treinos) + 24 treinos de ablação.",
+  "dataset": "examples/output/real_runs/dataset_tierM.npz",
+  "calibration_file": "examples/output/real_runs/reward_calibration.npz",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "agents": [
+    {
+      "name": "PPO-1",
+      "script": "examples/ppo_1.py",
+      "algo": "ppo",
+      "timesteps": 1200000
+    },
+    {
+      "name": "PPO-2",
+      "script": "examples/ppo_2.py",
+      "algo": "ppo",
+      "timesteps": 1200000
+    },
+    {
+      "name": "PPO-3",
+      "script": "examples/ppo_3.py",
+      "algo": "ppo",
+      "timesteps": 1200000
+    },
+    {
+      "name": "PPO-4",
+      "script": "examples/ppo_4.py",
+      "algo": "ppo",
+      "timesteps": 1200000
+    },
+    {
+      "name": "PPO-5",
+      "script": "examples/ppo_5.py",
+      "algo": "ppo",
+      "timesteps": 1200000
+    },
+    {
+      "name": "DQN",
+      "script": "examples/dqn.py",
+      "algo": "rem_dqn",
+      "timesteps": 200000
+    }
+  ],
+  "runs_total": 18,
+  "ablations_total": 24,
+  "ablations": [
+    {
+      "id": "A1",
+      "factor": "reward_calibration",
+      "levels": [
+        "fallback",
+        "calibrated"
+      ],
+      "agent": "PPO-2",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "trainings": 6
+    },
+    {
+      "id": "A2",
+      "factor": "normalization_population",
+      "levels": [
+        "totals",
+        "per_cell"
+      ],
+      "agent": "PPO-2",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "trainings": 6
+    },
+    {
+      "id": "A3",
+      "factor": "delta_semantics",
+      "levels": [
+        "dense_on",
+        "activation_impulse"
+      ],
+      "agent": "PPO-2",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "trainings": 6
+    },
+    {
+      "id": "A4",
+      "factor": "energy_model",
+      "levels": [
+        "proxy_tb",
+        "watts"
+      ],
+      "agent": "PPO-2",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "trainings": 6
+    }
+  ],
+  "command_example": ".venv/bin/python examples/ppo_2.py --dataset examples/output/real_runs/dataset_tierM.npz --output-dir examples/output/training/PPO-2_s0 --total-timesteps 1200000 --seed 0 --device cpu",
+  "acceptance": "42/42 finished or early-stopped; metadata.json with timesteps, best reward and wall time"
+}

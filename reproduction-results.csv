@@ -1,0 +1,25 @@
+run_name,policy,tuple,seed,status,duration_s,sim_time_covered_s,indications,throughput_mean,energy_mean,rlf_mean,rlf_max,bs_on_mean,activation_mean,comparable_99_indications,throughput_delta_pct_vs_always_on,energy_delta_pct_vs_always_on,note
+always_on_seed555,always_on,,555,ok,5079.8,10.0,99,93328.737,875.576,4.434,10.0,7.0,0.699979,yes,21.7,17.14,real ns-3 baseline run
+always_on_seed556,always_on,,556,ok,4914.1,10.0,99,75187.848,757.253,6.444,12.0,7.0,0.699979,yes,-1.95,1.31,real ns-3 baseline run
+always_on_seed557,always_on,,557,ok,4721.4,10.0,99,61541.323,609.596,10.707,18.0,7.0,0.699979,yes,-19.75,-18.45,real ns-3 baseline run
+dynamic_2_2_0_3_seed555,dynamic,2-2-0-3,555,crashed,458.5,1.1,11,45469.364,392.273,11.727,16.0,4.0,2.709601,no,-40.71,-47.52,crashed before 10 s; not comparable
+dynamic_2_2_0_3_seed556,dynamic,2-2-0-3,556,crashed,3461.3,7.6,76,43588.632,602.974,10.711,17.0,4.0,0.520877,no,-43.16,-19.33,crashed before 10 s; not comparable
+dynamic_2_2_0_3_seed557,dynamic,2-2-0-3,557,ok,4540.6,10.0,99,44930.859,517.586,16.818,27.0,4.0,0.566193,yes,-41.41,-30.76,real ns-3 baseline run
+dynamic_3_2_0_2_seed555,dynamic,3-2-0-2,555,ok,4692.4,10.0,99,61469.808,587.323,14.606,22.0,5.0,0.675891,yes,-19.84,-21.43,real ns-3 baseline run
+dynamic_3_2_0_2_seed556,dynamic,3-2-0-2,556,ok,4601.6,10.0,99,54123.091,607.848,10.677,20.0,5.0,0.68596,yes,-29.42,-18.68,real ns-3 baseline run
+dynamic_3_2_0_2_seed557,dynamic,3-2-0-2,557,ok,4464.5,10.0,99,56657.394,571.899,11.939,17.0,5.0,0.625941,yes,-26.12,-23.49,real ns-3 baseline run
+dynamic_4_2_0_1_seed555,dynamic,4-2-0-1,555,ok,5080.4,10.0,99,71541.333,770.737,7.051,13.0,6.0,0.896045,yes,-6.71,3.11,real ns-3 baseline run
+dynamic_4_2_0_1_seed556,dynamic,4-2-0-1,556,ok,4797.4,10.0,99,72535.97,721.818,8.687,15.0,6.0,0.599982,yes,-5.41,-3.43,real ns-3 baseline run
+dynamic_4_2_0_1_seed557,dynamic,4-2-0-1,557,ok,4692.7,10.0,99,57123.303,622.626,10.889,18.0,6.0,0.676864,yes,-25.51,-16.7,real ns-3 baseline run
+random_seed555,random,,555,ok,4336.5,10.0,99,30055.495,382.495,16.475,44.0,3.707,1.209938,yes,-60.81,-48.83,real ns-3 baseline run
+random_seed556,random,,556,ok,4127.3,10.0,99,40573.586,395.04,14.424,38.0,4.111,1.59369,yes,-47.09,-47.15,real ns-3 baseline run
+random_seed557,random,,557,ok,4126.7,10.0,99,23592.707,298.556,17.99,36.0,3.879,1.482027,yes,-69.23,-60.06,real ns-3 baseline run
+static_2_2_0_3_seed555,static,2-2-0-3,555,ok,4751.6,10.0,99,64299.061,626.343,17.222,24.0,4.0,0.451672,yes,-16.15,-16.21,real ns-3 baseline run
+static_2_2_0_3_seed556,static,2-2-0-3,556,crashed,3478.6,7.6,76,43588.632,602.974,10.711,17.0,4.0,0.520877,no,-43.16,-19.33,crashed before 10 s; not comparable
+static_2_2_0_3_seed557,static,2-2-0-3,557,ok,4479.1,10.0,99,45608.232,504.465,17.919,26.0,4.0,0.399988,yes,-40.53,-32.51,real ns-3 baseline run
+static_3_2_0_2_seed555,static,3-2-0-2,555,ok,4653.9,10.0,99,63619.828,628.01,12.576,18.0,5.0,0.599101,yes,-17.04,-15.98,real ns-3 baseline run
+static_3_2_0_2_seed556,static,3-2-0-2,556,ok,4655.5,10.0,99,67165.071,703.01,10.03,14.0,5.0,0.499985,yes,-12.42,-5.95,real ns-3 baseline run
+static_3_2_0_2_seed557,static,3-2-0-2,557,ok,4587.5,10.0,99,55297.111,610.515,12.222,20.0,5.0,0.499985,yes,-27.89,-18.32,real ns-3 baseline run
+static_4_2_0_1_seed555,static,4-2-0-1,555,ok,4837.9,10.0,99,72496.061,725.03,9.556,14.0,6.0,0.609073,yes,-5.46,-3.0,real ns-3 baseline run
+static_4_2_0_1_seed556,static,4-2-0-1,556,ok,4809.6,10.0,99,72535.97,721.818,8.687,15.0,6.0,0.599982,yes,-5.41,-3.43,real ns-3 baseline run
+static_4_2_0_1_seed557,static,4-2-0-1,557,ok,4718.5,10.0,99,56544.556,619.798,11.242,18.0,6.0,0.599982,yes,-26.26,-17.08,real ns-3 baseline run

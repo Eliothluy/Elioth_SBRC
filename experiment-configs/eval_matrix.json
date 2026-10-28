@@ -1,0 +1,31 @@
+{
+  "experiment": "eval_matrix_tierM",
+  "purpose": "Avaliar cada politica treinada em 5 seeds de ns-3 (90 runs) + 24 avaliacoes de ablacao.",
+  "ns3_path": "../ns-3-mmwave-oran",
+  "scenario_config": "src/environments/scenario_configurations/paper_es_use_case.json",
+  "eval_seeds": [
+    555,
+    556,
+    557,
+    558,
+    559
+  ],
+  "policies": [
+    "PPO-1",
+    "PPO-2",
+    "PPO-3",
+    "PPO-4",
+    "PPO-5",
+    "DQN"
+  ],
+  "training_seeds": [
+    0,
+    1,
+    2
+  ],
+  "runs_total": 90,
+  "ablation_runs_total": 24,
+  "command_example": ".venv/bin/python examples/ppo_2.py --eval-only --model examples/output/training/PPO-2_s0/best_model.zip --ns3-path ../ns-3-mmwave-oran --scenario-config src/environments/scenario_configurations/paper_es_use_case.json --ns3-output-folder examples/output/eval/PPO-2_s0_r555 --episodes 1 --seed 555",
+  "warning": "sem --ns3-path a avaliacao apenas reproduz transicoes gravadas; nao e avaliacao de politica.",
+  "acceptance": "90/90 live evaluations complete; per-indication throughput/energy/RLF stored; no dataset replay"
+}

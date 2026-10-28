@@ -1,0 +1,6 @@
+component,weight_symbol,sign,weight,mean_norm,sd_norm,min_norm,max_norm,mean_contribution,share_of_negative_mass_pct,corr_with_reward,corr_with_reward_within_policy,corr_with_throughput
+throughput,w1,+,0.4,0.5,0.115355,0.125575,0.794716,0.2,nan,-0.527136,-0.360126,1
+energy,w2,−,0.4,0.5,0.114007,0.12348,0.854326,-0.2,40,-0.712375,-0.645996,0.780821
+rlf,w3,−,0.1,0.5,0.0974265,0.196935,0.687659,-0.05,10,0.208056,0.152015,-0.0188483
+es_on_cost,w4,−,0.1,0.5,0.190632,0.12348,0.988456,-0.05,10,-0.522465,-0.535616,0.157298
+bs_on,w2,−,0.4,0.5,0.278352,0.00721501,0.921356,-0.2,40,-0.953171,-0.932116,0.647989
