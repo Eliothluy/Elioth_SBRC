@@ -1,0 +1,847 @@
+% =========================================================================
+%  apresentacao_orientador_ieee.tex
+%  Beyond Illusory Energy Savings in O-RAN -- Advisor Pitch (15 slides)
+%  Dados 100% reais (ns-3, workspace elioth_sbrc):
+%    - PITCH_ORIENTADOR_RESULTADOS.md (21 runs D1 + 34/40 Tier S)
+%    - ns-o-ran-gym/docs/plano_tecnico/RELATORIO_PLANO_TECNICO.md
+%  Compilar a partir da RAIZ do workspace:
+%    pdflatex -interaction=nonstopmode docs/apresentacao_orientador_ieee.tex
+%  (compilar da raiz resolve o caminho condicional do PNG do Pareto)
+%  Nota: se o TeX local for anterior a 2022, troque compat=1.18 por 1.16.
+% =========================================================================
+\documentclass[aspectratio=169,10pt,xcolor={dvipsnames,table}]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs,multirow,array}
+\usepackage{siunitx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ---------- Paleta executiva IEEE ----------
+\definecolor{ieeenavy}{RGB}{0,51,102}    % azul marinho IEEE
+\definecolor{darkgray}{RGB}{51,51,51}    % cinza escuro
+\definecolor{alertred}{RGB}{178,34,34}   % zona de colapso
+\definecolor{okgreen}{RGB}{27,120,55}    % zona viavel de SLA
+\definecolor{targetblue}{RGB}{0,102,153} % destaque TARGET EXP
+
+\usetheme{Madrid}
+\setbeamercolor{structure}{fg=ieeenavy}
+\setbeamercolor{palette primary}{bg=ieeenavy,fg=white}
+\setbeamercolor{palette secondary}{bg=ieeenavy!85!black,fg=white}
+\setbeamercolor{palette tertiary}{bg=ieeenavy!70!black,fg=white}
+\setbeamercolor{frametitle}{bg=ieeenavy,fg=white}
+\setbeamercolor{title}{bg=ieeenavy,fg=white}
+\setbeamercolor{block title}{bg=ieeenavy,fg=white}
+\setbeamercolor{block body}{bg=ieeenavy!6,fg=darkgray}
+\setbeamercolor{block title alerted}{bg=alertred,fg=white}
+\setbeamercolor{block body alerted}{bg=alertred!8,fg=darkgray}
+\setbeamercolor{block title example}{bg=okgreen,fg=white}
+\setbeamercolor{block body example}{bg=okgreen!8,fg=darkgray}
+\setbeamertemplate{navigation symbols}{}
+\setbeamerfont{frametitle}{series=\bfseries,size=\large}
+\sisetup{locale=DE,output-decimal-marker={,}}
+
+\newcommand{\targetexp}[1]{{\color{targetblue}\textbf{[TARGET EXP: #1]}}}
+\newcommand{\datapath}[1]{{\scriptsize\color{darkgray}\texttt{#1}}}
+
+\title[Beyond Illusory Energy Savings in O-RAN]{Beyond Illusory Energy Savings in O-RAN:\\
+Diagnosing Reward Hacking and Enforcing QoS\\ via Constrained Offline RL}
+\subtitle{Auditoria Emp\'irica em ns-3, Redu\c{c}\~ao Alg\'ebrica de Estado\\ e Formula\c{c}\~ao CMDP \ (\footnotesize alvo: IEEE Transactions / Flagship)}
+\author{Eliothluy\\{\small\texttt{eliothluy@gmail.com}}}
+\institute[LaCIS/ITEC/UFPA]{LaCIS\ --\ ITEC\ --\ Universidade Federal do Par\'a (UFPA)}
+\date{28 de outubro de 2026}
+
+\begin{document}
+
+% ========================================================================
+% SLIDE 1 -- CAPA
+% ========================================================================
+\begin{frame}
+  \titlepage
+  \begin{center}
+    {\small\textbf{Em uma frase:} provamos, com 40 runs reais de ns-3, que o estado
+    da arte confunde \emph{desligar c\'elulas} com \emph{poupar energia} --- e
+    propomos o primeiro benchmark QoS-aware com Offline RL restrito para operar
+    na regi\~ao que ningu\'em alcan\c{c}ou.}\\[2mm]
+    \datapath{Dados: 40 runs reais ns-3 (8 pol. $\times$ 5 seeds) $\cdot$ PITCH\_ORIENTADOR\_RESULTADOS.md $\cdot$ docs/plano\_tecnico/}
+  \end{center}
+\end{frame}
+% [SPEAKER NOTE]: "Professor, em uma frase: descobrimos que o estado da arte
+% mais recente de energy saving em O-RAN confunde desligar células com poupar
+% energia — e já temos o diagnóstico matemático, os dados reais que provam isso
+% e a solução (offline RL com restrição de QoS) implementada e testada.
+% Nos próximos 12 slides eu mostro o smoking gun, a fronteira de Pareto que
+% fecha o artigo e o cronograma de 4 passos até o manuscrito."
+
+% ========================================================================
+% SLIDE 2 -- O PROBLEMA (didatico: analogia + ciclo vicioso)
+% ========================================================================
+\begin{frame}{O Problema --- ``efici\^encia'' que vem de parar de entregar tr\'afego}
+  \begin{beamercolorbox}[wd=\textwidth,sep=3pt]{block body}
+    \centering\small
+    \textbf{Analogia:} fechar a loja economiza a conta de luz --- mas isso n\~ao \'e
+    efici\^encia. \textbf{Efici\^encia \'e vender o mesmo com menos luz.} A literatura
+    recente de \emph{energy saving} em O-RAN --- incluindo Bordin et al.\ (CCNC
+    2025) --- n\~ao separa as duas coisas.
+  \end{beamercolorbox}
+  \vspace{1.5mm}
+  \begin{center}
+  \begin{tikzpicture}[
+      box/.style={rectangle,rounded corners=3pt,draw=ieeenavy,fill=ieeenavy!7,
+                  font=\scriptsize,align=center,inner sep=3pt,
+                  text width=3.55cm,minimum height=1.05cm},
+      arr/.style={-{Stealth[length=3mm]},very thick,alertred}]
+    \node[box] (a) at (0,1.6)    {\textbf{1.} o xApp desliga c\'elulas\\ (a\c{c}\~ao livre, sem regra)};
+    \node[box] (b) at (4.75,1.6) {\textbf{2.} a vaz\~ao entregue desaba\\ (Random: $-59\%$)};
+    \node[box] (c) at (4.75,-0.2){\textbf{3.} a ``energia'' cai junto\\ (proxy $=$ tr\'afego carregado)};
+    \node[box] (d) at (0,-0.2)   {\textbf{4.} o \emph{reward} sobe:\\ a Eq.~(2) paga por desligar};
+    \draw[arr] (a) -- (b);
+    \draw[arr] (b) -- (c);
+    \draw[arr] (c) -- (d);
+    \draw[arr] (d) -- (a);
+    \node[font=\scriptsize\bfseries,alertred,align=center] at (2.38,0.7) {ciclo\\vicioso};
+  \end{tikzpicture}
+  \end{center}
+  \vspace{1.5mm}
+  {\footnotesize No artigo base: $\gamma = EC \cdot P_{tx}$ \'e uma
+  \textbf{contagem de transport blocks} ($P_{tx}{=}1$) e a QoS (vaz\~ao, RLF)
+  aparece apenas na \emph{avalia\c{c}\~ao} --- \textbf{nunca no treino}.}
+\end{frame}
+% [SPEAKER NOTE]: Abrir com a analogia da loja: "fechar a loja economiza a
+% conta de luz, mas ninguém publica isso como eficiência energética." O
+% diagrama é o ciclo vicioso do artigo: a ação livre derruba tráfego, o proxy
+% de energia cai junto (porque É tráfego), o reward paga — e o agente aprende
+% a desligar mais. Se o orientador pedir evidência: o proxy é contagem de
+% transport blocks, está na Eq. (1) e no código (es_env.py).
+
+% ========================================================================
+% SLIDE 3 -- A DESCOBERTA EM 3 PASSOS (numeros grandes)
+% ========================================================================
+\begin{frame}{A Descoberta em 3 Passos (o \emph{smoking gun}, ns-3 real)}
+  \begin{columns}[T]
+    \begin{column}{0.32\textwidth}
+      \begin{block}{1. O reward paga por desligar}
+        \centering
+        {\LARGE $\mathbf{-0{,}953}$}\\[1mm]
+        {\scriptsize $\mathrm{corr}\big(R,\ B_{sON}\big)$}\\[2mm]
+        {\scriptsize $B_{sON}$ = n.\textdegree{} de c\'elulas ligadas: \'e
+        \textbf{estado}, n\~ao desempenho --- e carrega \textbf{40\%} de toda a
+        massa negativa do reward (era \textbf{89,7\%} antes de calibrar).}
+      \end{block}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \begin{alertblock}{2. O \'otimo \'e a pior pol\'itica}
+        \centering
+        {\LARGE \textbf{5 / 6}}\\[1mm]
+        {\scriptsize conjuntos de pesos da Tabela I em que a \textbf{Random}
+        vence}\\[2mm]
+        {\scriptsize reward m\'edio: Random $-0{,}238$ vs.\ Always-On $-0{,}466$
+        --- com $-59\%$ de vaz\~ao e RLF m\'aximo de 48 UEs.}
+      \end{alertblock}
+    \end{column}
+    \begin{column}{0.32\textwidth}
+      \begin{block}{3. ``Economia'' $=$ tr\'afego n\~ao entregue}
+        \centering
+        {\LARGE $\mathbf{1{,}979}\times$}\\[1mm]
+        {\scriptsize energia por bit da Random vs.\ Always-On}\\[2mm]
+        {\scriptsize $1{,}000 \to 1{,}093 \to 1{,}148 \to \mathbf{1{,}979}$:
+        piora em \textbf{100\% dos baselines}. Sempre $\lvert\Delta
+        \text{Thr}\rvert > \lvert\Delta E\rvert$.}
+      \end{block}
+    \end{column}
+  \end{columns}
+  \vspace{2mm}
+  \begin{beamercolorbox}[wd=\textwidth,sep=2pt]{block body alerted}
+    \centering\small
+    Conclus\~ao do diagn\'ostico: \textbf{recalibrar pesos n\~ao resolve} --- a
+    falha \'e \emph{estrutural} ($w_2$ duplicado; QoS fora do treino). O problema
+    precisa ser reformulado, n\~ao re-ponderado.
+  \end{beamercolorbox}
+\end{frame}
+% [SPEAKER NOTE]: "Três passos, três números. Um: a recompensa correlaciona a
+% menos 0,95 com o número de células ligadas — é uma função de estado. Dois:
+% como consequência, em cinco dos seis pesos publicados, a política ótima é a
+% Random, que derruba 59% da vazão. Três: o que sobrou de 'economia' é só
+% tráfego não entregue — a Random gasta quase o dobro de energia por bit.
+% Punchline: isso não se conserta mexendo nos pesos."
+
+% ========================================================================
+% SLIDE 4 -- NOSSA PROPOSTA EM 1 FIGURA (receita -> alvo)
+% ========================================================================
+\begin{frame}{Nossa Proposta em 1 Figura --- economizar \emph{sem quebrar o servi\c{c}o}}
+  \begin{columns}[T]
+    \begin{column}{0.53\textwidth}
+      \begin{enumerate}
+        \item \textbf{Medir energia de verdade}\\
+          {\small modelo EARTH em watts: $P_{\text{on}} = 130 + 94x$~W,
+          $P_{\text{sleep}} = 75$~W \ (decis\~ao D1)}
+        \item \textbf{Proibir o colapso \emph{no treino} (CMDP)}\\
+          {\small o pr\^emio de energia s\'o \'e pago com o SLA cumprido:
+          vaz\~ao $\ge \tau_{\text{SLA}}$, RLF $\le \kappa$ \ (E1)}
+        \item \textbf{Aprender \emph{offline} de verdade}\\
+          {\small IQL/CQL discreto no lugar do ``PPO'' que ignora a pr\'opria
+          a\c{c}\~ao \ (D4) $+$ estado \textbf{compact70} via SVD}
+      \end{enumerate}
+      \vspace{1.5mm}
+      \begin{beamercolorbox}[wd=\textwidth,sep=3pt]{block body example}
+        \small \textbf{A pergunta que o artigo responde:} \emph{quanto d\'a para
+        economizar sem quebrar o servi\c{c}o?} --- hoje sem resposta, porque o
+        benchmark existente nem faz a pergunta.
+      \end{beamercolorbox}
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \begin{center}
+      \begin{tikzpicture}
+        \begin{axis}[
+            width=\linewidth, height=6.0cm,
+            xmin=0, xmax=24, ymin=-68, ymax=6,
+            axis lines=left, grid=major,
+            xtick={10,20}, xticklabels={\scriptsize $+10\%$, \scriptsize $+20\%$},
+            ytick={-10}, yticklabels={\scriptsize SLA},
+            tick label style={font=\scriptsize},
+            xlabel={\scriptsize economia de energia}, ylabel={\scriptsize vaz\~ao},
+          ]
+          \fill[alertred!10] (axis cs:0,-68) rectangle (axis cs:24,-10);
+          \fill[okgreen!12]   (axis cs:0,-10) rectangle (axis cs:24,6);
+          \fill[targetblue!25,draw=targetblue,dashed]
+               (axis cs:10,-10) rectangle (axis cs:20,-1);
+          \draw[alertred,thick,dashed] (axis cs:0,-10) -- (axis cs:24,-10);
+          \addplot[only marks, mark=*, mark size=2.3pt, ieeenavy] coordinates
+            {(0,0) (6.09,-10.09) (12.05,-20.0) (18.22,-31.36) (21.39,-61.66)};
+          \node[font=\tiny,ieeenavy]        at (axis cs:1.6,-5.5)  {sempre ON};
+          \node[font=\tiny,ieeenavy]        at (axis cs:7.5,-14.5) {(4,2,1)};
+          \node[font=\tiny,ieeenavy]        at (axis cs:13.8,-16.5){(3,2,2)};
+          \node[font=\tiny,ieeenavy]        at (axis cs:19.6,-27)  {(2,2,3)};
+          \node[font=\tiny,ieeenavy]        at (axis cs:20.8,-66)  {Random};
+          \node[font=\tiny,targetblue,align=center,text=targetblue]
+            at (axis cs:15,-5.6) {\textbf{nosso agente}\\(regi\~ao hoje vazia)};
+          \node[font=\tiny,alertred,anchor=west] at (axis cs:0.3,-45)
+            {zona de colapso};
+          \node[font=\tiny,okgreen,anchor=west] at (axis cs:0.3,-4)
+            {zona vi\'avel};
+        \end{axis}
+      \end{tikzpicture}
+      \end{center}
+      \vspace{-1mm}
+      {\scriptsize Alvo pr\'e-registrado: $\Delta E \in [10,20]\%$ com
+      $\Delta\text{Thr} \ge -10\%$ e RLF $\le 2$, IC95 sobre 5 seeds.}
+    \end{column}
+  \end{columns}
+\end{frame}
+% [SPEAKER NOTE]: "Nossa proposta tem três ingredientes: medir energia em
+% watts de verdade; colocar a restrição de serviço DENTRO do treinamento — o
+% prêmio só é pago com o SLA cumprido; e usar offline RL genuíno com um estado
+% enxuto de 70 dimensões. O gráfico à direita é o contrato com o orientador:
+% a caixa azul é a região que nenhuma política alcançou — é lá que nosso
+% agente vai pousar, e é essa a contribuição do artigo."
+
+% ========================================================================
+% SLIDE 3 -- TABELA I: AUDITORIA METODOLOGICA
+% ========================================================================
+\begin{frame}{Auditoria Metodol\'ogica --- Artigo Base vs.\ Nossa Implementa\c{c}\~ao}
+  \begin{table}
+    \centering\scriptsize
+    \setlength{\tabcolsep}{4pt}
+    \renewcommand{\arraystretch}{1.08}
+    \begin{tabular}{@{}p{2.0cm}p{4.35cm}p{5.0cm}@{}}
+      \toprule
+      \textbf{Eixo crítico} & \textbf{Artigo base (CCNC 2025)} & \textbf{Nossa implementação auditada} \\
+      \midrule
+      Modelo de energia &
+        $\gamma_i = EC_i\cdot P_{tx}$ = contagem de TB (proxy), $P_{tx}{=}1$ &
+        \textbf{D1: EARTH macro em W}: $P_{\text{on}} = 130 + 94x$~W,
+        $P_{\text{sleep}} = 75$~W; teto físico de poupança 33,5--66,5\%/célula \\
+      \addlinespace[2pt]
+      Normalização &
+        população não declarada; \emph{fallback} comprime componentes
+        ($bs_{on}$ = 89,7\% da massa negativa) &
+        \textbf{D3: quantílica por célula}, calibrada em runs reais
+        (\texttt{reward\_calibration\_d1d3.npz}) \\
+      \addlinespace[2pt]
+      Algoritmo ``offline'' &
+        ``PPO offline'' via replay que \emph{ignora a ação} do agente
+        $\Rightarrow$ behavior cloning ponderado &
+        \textbf{D4: IQL discreto} (\texttt{iql.py}); CQL no DQN;
+        replay mantido só como ablação \\
+      \addlinespace[2pt]
+      Estado &
+        ``85 KPMs'' com duplicatas: $r{=}1{,}0$; $\text{rank}(X_{85})=70$ &
+        \textbf{Compact70} via SVD (posto completo;
+        \texttt{STATE\_VARIANTS["compact70"]}) \\
+      \addlinespace[2pt]
+      Restrição de QoS &
+        RLF/vazão apenas na \emph{avaliação} (Tabela VI) &
+        \textbf{CMDP no treino}: Lagrangiano (grade $\lambda$) + porta de SLA;
+        \emph{87 testes aprovados} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{-2mm}
+  \datapath{implementation-audit.md (27 confirmados / 12 parciais / 4 ausentes / 6 divergentes) $\cdot$ experiment-configs/decisions.md (D1--D5)}
+\end{frame}
+% [SPEAKER NOTE]: "Cada linha desta tabela é uma decisão invisível no texto do
+% artigo que muda o sinal que o agente otimiza. As cinco já estão implementadas
+% e testadas no nosso fork — 87 testes verdes. Não é opinião: são eixos com
+% arquivo, linha e commit." Se o orientador questionar reprodução: "classificamos
+% tudo como novo experimento com especificação declarada, nunca replicação."
+
+% ========================================================================
+% SLIDE 4 -- FIGURA 1: A ILUSAO DA ECONOMIA DE ENERGIA
+% ========================================================================
+\begin{frame}{Fig.\ 1 --- A Ilus\~ao da Economia de Energia (21 runs, modelo D1 em watts)}
+  \begin{columns}[T]
+    \begin{column}{0.60\textwidth}
+      \begin{center}
+      \begin{tikzpicture}
+        \begin{axis}[
+            width=\linewidth, height=6.1cm,
+            symbolic x coords={Always-On,Static,Dynamic,Random},
+            xtick=data, tick label style={font=\scriptsize},
+            ymin=-70, ymax=12, ytick distance=20,
+            ylabel={variação (\%)}, ylabel style={font=\scriptsize},
+            legend style={font=\scriptsize,at={(0.03,0.97)},anchor=north west,
+                          draw=none,fill=white,fill opacity=0.85,text opacity=1},
+            grid=major,
+          ]
+          \addplot[ybar, bar width=9pt, bar shift=-5.5pt, draw=none,
+                   fill=ieeenavy!85] coordinates
+            {(Always-On,0) (Static,-11.38) (Dynamic,-10.49) (Random,-18.96)};
+          \addplot[ybar, bar width=9pt, bar shift=5.5pt, draw=none,
+                   fill=darkgray!55] coordinates
+            {(Always-On,0) (Static,-18.90) (Dynamic,-22.06) (Random,-59.04)};
+          \addplot[only marks, mark=triangle*, mark size=3.4pt, alertred] coordinates
+            {(Random,-52.01)};
+          \node[font=\scriptsize,alertred,anchor=west] at (axis cs:Random,-46) {proxy: $-52\%$};
+          \legend{$\Delta$Energia (D1 watts),$\Delta$Throughput,$\Delta$E proxy (Eq.~1)}
+        \end{axis}
+      \end{tikzpicture}
+      \end{center}
+      \vspace{-3mm}
+      {\scriptsize Barras: 21 runs oficiais (IC95 no
+      \texttt{baseline\_summary.csv}); triângulo: proxy do artigo exagera a
+      ``economia'' da Random em $\approx$2,7$\times$.}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \begin{block}{Intensidade energética $E/\text{thr}$ (Always-On $=1$)}
+        \centering\small
+        \begin{tabular}{lr}
+          \toprule
+          Always-On & 1.000 \\
+          Static    & 1.093 \\
+          Dynamic   & 1.148 \\
+          \rowcolor{alertred!15}\textbf{Random} & \textbf{1.979} \\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+      \begin{exampleblock}{Leitura}
+        \small Toda política gasta \textbf{mais watts por bit entregue};
+        a poupança absoluta vem de transportar \textbf{menos tráfego}
+        ($\Delta E$ sempre menor que $\Delta\text{Thr}$).
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+% [SPEAKER NOTE]: "Olhem o padrão: cada barra de energia é sempre mais curta
+% que a barra de throughput ao lado. E o número da direita é o que fecha a
+% conta: a Random gasta quase DOIS Joules por bit entregue a mais. No proxy do
+% artigo (triângulo vermelho) a mesma run 'economiza' 52% — é tráfego não
+% entregue disfarçado de watts."
+
+% ========================================================================
+% SLIDE 5 -- FIGURA 2: ANATOMIA DO REWARD HACKING
+% ========================================================================
+\begin{frame}{Fig.\ 2 --- Anatomia Matem\'atica do \emph{Reward Hacking} na Eq.~(2)}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \begin{equation*}
+        r = \textcolor{okgreen}{w_1\rho} - \textcolor{alertred}{w_2\gamma}
+            - w_3\varsigma - w_4\delta - \textcolor{alertred}{w_2 B_{sON}}
+      \end{equation*}
+      \vspace{-2mm}
+      {\scriptsize \textcolor{alertred}{$w_2$ aparece 2$\times$} $\Rightarrow$ eixo
+      energético efetivo $= 2w_2$; $B_{sON}$ é \textbf{estado}, não desempenho.}
+      \begin{center}
+      \begin{tikzpicture}
+        \begin{axis}[
+            width=0.94\linewidth, height=4.6cm,
+            ybar stacked, bar width=20pt,
+            symbolic x coords={Pre-calibracao, Pos-D1D3},
+            xtick=data, tick label style={font=\scriptsize},
+            xticklabels={pré-calibração (fallback), pós D1--D3 (quantílica)},
+            ymin=0, ymax=100,
+            ylabel={massa negativa (\%)}, ylabel style={font=\scriptsize},
+            legend style={font=\scriptsize,at={(0.5,-0.22)},anchor=north,
+                          legend columns=2,draw=none},
+          ]
+          \addplot[draw=none,fill=alertred!85] coordinates
+            {(Pre-calibracao,89.7) (Pos-D1D3,40)};
+          \addplot[draw=none,fill=ieeenavy!75] coordinates
+            {(Pre-calibracao,1.3) (Pos-D1D3,40)};
+          \addplot[draw=none,fill=orange!85] coordinates
+            {(Pre-calibracao,5.8) (Pos-D1D3,10)};
+          \addplot[draw=none,fill=gray!60] coordinates
+            {(Pre-calibracao,3.2) (Pos-D1D3,10)};
+          \legend{$bs_{on}$ (estado!),energia (watts),RLF,$\delta$ (ativação)}
+        \end{axis}
+      \end{tikzpicture}
+      \end{center}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \begin{block}{Sensibilidade aos 6 pesos da Tabela I (reward médio)}
+        \centering\scriptsize
+        \begin{tabular}{@{}lccc@{}}
+          \toprule
+          Agente & Always-On & Static & \textbf{Random} \\
+          \midrule
+          PPO-1 ($w_2{=}\mathbf{0.19}$) & $-0.121$ & \cellcolor{okgreen!20}$\mathbf{-0.076}$ & $-0.086$ \\
+          PPO-2 / DQN & $-0.466$ & $-0.273$ & \cellcolor{alertred!15}$\mathbf{-0.238}$ \\
+          PPO-3 & $-0.693$ & $-0.472$ & \cellcolor{alertred!15}$\mathbf{-0.410}$ \\
+          PPO-4 & $-0.379$ & $-0.241$ & \cellcolor{alertred!15}$\mathbf{-0.214}$ \\
+          PPO-5 & $-0.196$ & $-0.142$ & \cellcolor{alertred!15}$\mathbf{-0.138}$ \\
+          \bottomrule
+        \end{tabular}
+      \end{block}
+      \vspace{-1mm}
+      \begin{alertblock}{Correlações medidas (2.079 transições reais)}
+        \small
+        $\mathrm{corr}(R,\,B_{sON}) = \mathbf{-0.953}$ \quad
+        $\mathrm{corr}(R,\,\rho) = -0.527$\\
+        $\Rightarrow$ o reward \textbf{premia desligar células},
+        não poupar energia por bit.
+      \end{alertblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+% [SPEAKER NOTE]: "A esquerda mostra que a calibração conserta a escala mas não
+% a semântica: mesmo depois do D1–D3, quem domina é B_sON — uma variável de
+% ESTADO. À direita, a prova: em 5 dos 6 pesos publicados, o ótimo é a Random.
+% O único que escapa é o PPO-1, justamente o de menor w2 — a duplicação do w2
+% é estrutural. Conclusão para o artigo: ajustar pesos lineares não resolve."
+
+% ========================================================================
+% SLIDE 6 -- TABELA II: 34/40 POR TUPLA
+% ========================================================================
+\begin{frame}{Resultados Emp\'iricos por Tupla --- Campanha Tier S (34/40 runs)}
+  \begin{table}
+    \centering\scriptsize
+    \setlength{\tabcolsep}{4.5pt}
+    \renewcommand{\arraystretch}{1.1}
+    \begin{tabular}{@{}llccccc@{}}
+      \toprule
+      \textbf{Tupla} (células OFF) & \textbf{Família} & \textbf{Runs} &
+      $\boldsymbol{\Delta E}$ \textbf{(\%)} & $\boldsymbol{\Delta\text{Thr}}$ \textbf{(\%)} &
+      \textbf{RLF máx} & \textbf{$E/\text{thr}$} \\
+      \midrule
+      --- (7 ON)              & Always-On   & 5/5 & $+0{,}00$  & $0{,}00$        & 18 & 1.000 \\
+      \multirow{2}{*}{4-2-0-1 (1 OFF)}  & Static  & 3/5 & $+6{,}09$ & $-10{,}09$ & 18 & 1.044 \\
+                                        & Dynamic & 4/5 & $+6{,}03$ & $-11{,}90$ & 18 & 1.049 \\
+      \multirow{2}{*}{3-2-0-2 (2 OFF)}  & Static  & 5/5 & $+12{,}05$ & $-20{,}00$ & 20 & 1.087 \\
+                                        & Dynamic & 5/5 & $+12{,}15$ & $-23{,}87$ & 22 & 1.094 \\
+      \multirow{2}{*}{2-2-0-3 (3 OFF)}  & Static  & 4/5 & $+18{,}22$ & $-31{,}36$ & 26 & 1.141 \\
+                                        & Dynamic & 3/5 & $+18{,}25$ & $-34{,}92$ & 27 & 1.148 \\
+      aleatório (3,5 ON méd.) & \textbf{Random} & 5/5 &
+        $\mathbf{+21{,}39}$ & $\mathbf{-61{,}66}$ & \textbf{48} & \textbf{1.979} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{-1mm}
+  \begin{beamercolorbox}[wd=\textwidth,sep=2pt]{block body}
+    \small\textbf{Variância entre seeds:} energia é \emph{determinística}
+    ($\mathrm{dp} \le 0{,}19$ pp --- depende só das horas de sleep), mas vazão
+    espalha \textbf{9,98--18,90 pp} entre seeds (o próprio Always-On:
+    $\pm 20{,}7\%$). $\Rightarrow$ avaliações \emph{single-seed} são
+    estatisticamente inválidas; tudo nosso reporta 5 seeds.
+  \end{beamercolorbox}
+  \datapath{pareto\_families\_d1.json / pareto\_perseed\_d1.json $\cdot$ runs excluídos: os 6 crashes do slide 8}
+\end{frame}
+% [SPEAKER NOTE]: "A tabela mostra o degrau físico: cada célula desligada a
+% mais compra ~6 pontos de energia e paga 10 a 12 pontos de vazão. E a última
+% linha é a armadilha: a Random 'economiza' 21% entregando 62% menos. Nota
+% methodológica que o revisor vai gostar: energia é determinística, vazão tem
+% ruído de até 19 pontos — sem 5 seeds nada aqui é publicável."
+
+% ========================================================================
+% SLIDE 7 -- FIGURA 3: FRONTeira DE PARETO QoS-AWARE
+% ========================================================================
+\begin{frame}{Fig.\ 3 --- Quanto d\'a para economizar sem quebrar o SLA? (Fronteira de Pareto)}
+  \begin{columns}[T]
+    \begin{column}{0.68\textwidth}
+      \begin{center}
+      \begin{tikzpicture}
+        \begin{axis}[
+            width=\linewidth, height=6.7cm,
+            xmin=-1, xmax=27, ymin=-75, ymax=6,
+            xlabel={redução de energia $\Delta E$ (\%)},
+            ylabel={variação de vazão $\Delta\text{Thr}$ (\%)},
+            label style={font=\scriptsize},
+            tick label style={font=\scriptsize},
+            grid=major,
+          ]
+          % zonas: colapso (vermelho) x viavel (verde)
+          \fill[alertred!10] (axis cs:0,-75) rectangle (axis cs:27,-10);
+          \fill[okgreen!12]   (axis cs:0,-10) rectangle (axis cs:27,6);
+          % regiao alvo do agente CMDP
+          \fill[targetblue!22,draw=targetblue,dashed,thin]
+               (axis cs:10,-10) rectangle (axis cs:20,-0.5);
+          \node[font=\scriptsize,targetblue,align=center] at (axis cs:15,-5.2)
+               {\targetexp{IQL/CQL + CMDP}\\ {\scriptsize região hoje vazia}};
+          % piso de SLA
+          \draw[alertred,thick,dashed] (axis cs:-1,-10) -- (axis cs:27,-10)
+               node[pos=0.24,above,font=\scriptsize,alertred]
+               {piso de SLA ($\Delta\text{Thr} = -10\%$)};
+          % diagonal 1:1 de referencia
+          \draw[darkgray!60,densely dashed,thin] (axis cs:0,0) -- (axis cs:26,-26);
+          % pontos reais (34/40, modelo D1)
+          \addplot[only marks, mark=*, mark size=2.6pt,
+                   ieeenavy] coordinates
+            {(0,0) (6.09,-10.09) (6.03,-11.90) (12.05,-20.00)
+             (12.15,-23.87) (18.22,-31.36) (18.25,-34.92) (21.39,-61.66)};
+          % pontos publicados no artigo (valores do texto / Fig.4 validada)
+          \addplot[only marks, mark=o, mark size=2.6pt, draw=darkgray,
+                   fill=none] coordinates
+            {(0.7,-23.5) (4.3,-27.6) (1.9,-16.3) (24.2,-52.3)
+             (4.1,-27.5) (19.3,-46.2) (13.6,-34.0) (1.3,-9.6)};
+          \node[font=\scriptsize,ieeenavy]              at (axis cs:21.4,-66.5) {Random};
+          \node[font=\scriptsize,ieeenavy]              at (axis cs:6.1,-14.6)  {(4,2,1)};
+          \node[font=\scriptsize,ieeenavy]              at (axis cs:12.2,-17.3) {(3,2,2)};
+          \node[font=\scriptsize,ieeenavy]              at (axis cs:18.4,-29.2) {(2,2,3)};
+          \node[font=\scriptsize,darkgray,anchor=west]  at (axis cs:24.4,-52.3) {PPO-2};
+          \node[font=\scriptsize,darkgray]              at (axis cs:1.0,-5.5)   {AO};
+          \legend{{\scriptsize reais 34/40 (D1 watts) --- 8 famílias},
+                  {\scriptsize publicados (Tabela I / Fig.~4 do artigo)}}
+        \end{axis}
+      \end{tikzpicture}
+      \end{center}
+    \end{column}
+    \begin{column}{0.30\textwidth}
+      \begin{alertblock}{Zona de colapso (vermelha)}
+        \small Random, PPO-2, PPO-4, PPO-5 e as tuplas (3,2,2)/(2,2,3):
+        ``economia'' $\Leftrightarrow$ vazão desabada.
+      \end{alertblock}
+      \begin{exampleblock}{Zona viável (verde)}
+        \small Hoje só nas tuplas (4,2,1) --- que economizam pouco
+        ($+6\%$). A região alta ($\Delta E \in [10,20]\%$) está
+        \textbf{vazia}: 1 pp de energia custa \textbf{1,6--2,9 pp} de vazão
+        em \emph{todos} os pontos conhecidos.
+      \end{exampleblock}
+      \IfFileExists{ns-o-ran-gym/examples/output/analysis/pareto_energy_throughput.png}%
+        {\datapath{$\Rightarrow$ PNG hi-res: analysis/pareto\_energy\_throughput.png}}%
+        {\datapath{$\Rightarrow$ PNG do Pareto ainda não gerado nesta c\'opia}}
+    \end{column}
+  \end{columns}
+\end{frame}
+% [SPEAKER NOTE]: "Esta é a figura que fecha o artigo: eixo X energia, eixo Y
+% vazão, linha vermelha do SLA. Acima dela, zona viável — praticamente vazia
+% acima de 10% de economia. Abaixo, a zona de colapso, onde moram a Random e os
+% PPOs publicados. Nosso agente CMDP existe para pousar na caixa azul — e cada
+% λ da grade Lagrangiana vira um candidato a ponto nessa fronteira."
+
+% ========================================================================
+% SLIDE 8 -- FRENTE 1: INSTABILIDADE DA PILHA
+% ========================================================================
+\begin{frame}{Frente 1 --- Achado Transversal: Instabilidade da Pilha de Protocolos}
+  \begin{alertblock}{6/40 runs quebraram --- 100\% nas políticas com células em \emph{sleep}}
+    Always-On e Random completaram \textbf{5/5 seeds}; os 6 crashes
+    concentram-se nas tuplas (2,2,3) e (4,2,1) de Static/Dynamic
+    (3 $\times$ \texttt{NS\_ASSERT} de buffer + 3 $\times$ \texttt{SIGSEGV}),
+    em $t = 1{,}1$ / $7{,}64$ / $9{,}9$~s --- causa confirmada por
+    \emph{coredumps} do systemd e reprodução determinística sob GDB.
+  \end{alertblock}
+  \begin{center}
+  \begin{tikzpicture}[
+      node distance=0.32cm and 0.32cm,
+      box/.style={rectangle,rounded corners=2pt,draw=ieeenavy,fill=ieeenavy!7,
+                  font=\scriptsize,align=center,inner sep=2.5pt,
+                  text width=2.42cm,minimum height=1.35cm},
+      bad/.style={box,draw=alertred,fill=alertred!10},
+      arr/.style={-{Stealth[length=2.2mm]},thick,ieeenavy}]
+    \node[box] (a) {\textbf{RF-OFF agressivo}\\ \emph{sleep} sem restrição (PPO-2 troca as 7 células a cada 100 ms)};
+    \node[box,right=of a] (b) {\textbf{Rajada de handover}\\ e evicção de UEs};
+    \node[box,right=of b] (c) {\textbf{PDUs truncadas}\\ RLC-AM / PDCP\\ {\tiny ``Fragment too small in txonBuffer''}};
+    \node[box,right=of c] (d) {\textbf{Datagrama corrompido}\\ via S1-U / TUN do EPC\\ {\tiny IHL $= 0$, endereços lixo}};
+    \node[bad,right=of d] (e) {\textbf{Falha fatal ns-3.38}\\ assert de leitura/escrita \texttt{buffer.h} (IPv6, IHL$<$5)\\ SIGSEGV TCP-SACK};
+    \draw[arr] (a) -- (b);
+    \draw[arr] (b) -- (c);
+    \draw[arr] (c) -- (d);
+    \draw[arr] (d) -- (e);
+  \end{tikzpicture}
+  \end{center}
+  \begin{exampleblock}{Engenharia + tese para o paper}
+    \small Patch aplicado e compilando (\texttt{./ns3 build} $\to$ exit 0):
+    \texttt{ipv4-header.cc:444--448} rejeita \texttt{ihl<5} em
+    \texttt{Deserialize()} + \texttt{GetSerializedSize()} $\ge 20$~B
+    (descarte com aviso, como PDCP/SACK/IPv6). \textbf{Tese:} \emph{o espaço
+    de ações irrestrito não é operacionalmente viável --- xApps reais exigem
+    garantias de segurança (mínimo de células ativas, histerese) que
+    $\delta_i$ na Eq.~(2) só parcialmente captura}.
+  \end{exampleblock}
+\end{frame}
+% [SPEAKER NOTE]: "Os crashes não são um incômodo de infraestrutura — são
+% resultado. Desligar células sem restrição derruba não só a vazão: desestabiliza
+% a própria pilha do simulador, em cadeia confirmada por coredump. Já corrigimos
+    % o sítio principal e o build está verde. No artigo, isso vira parágrafo de
+% estabilidade: o ótimo do reward é também o máximo de instabilidade."
+
+% ========================================================================
+% SLIDE 11 -- CMDP: A IDEIA EM UMA FRASE (didatico)
+% ========================================================================
+\begin{frame}{Frente 2 --- CMDP: a Ideia em Uma Frase}
+  \begin{beamercolorbox}[wd=\textwidth,sep=4pt]{block body example}
+    \centering\large
+    ``O b\^onus de energia s\'o \'e pago quando o servi\c{c}o est\'a cumprido ---
+    como o b\^onus de um vendedor, atrelado \`a nota de satisfa\c{c}\~ao do cliente.''
+  \end{beamercolorbox}
+  \vspace{3mm}
+  \begin{equation*}
+    r' \;=\; r \;-\;
+    \textcolor{alertred}{\lambda}\cdot
+    \underbrace{\max\!\big(0,\ \tau_{\text{SLA}} - \bar{\rho}^{(W)}\big)}_{\text{quanto o SLA est\'a sendo violado na \'ultima janela}}
+  \end{equation*}
+  \vspace{1mm}
+  \begin{itemize}
+    \item \textcolor{alertred}{$\lambda$} \'e o ``tamanho da multa'': a grade fixa
+      $\lambda \in \{0;\,0{,}5;\,1;\,2;\,5;\,10\}$ gera \textbf{um ponto na
+      fronteira de Pareto por valor} --- do sem-restri\c{c}\~ao ao conservador.
+    \item \textbf{Via alternativa (porta suave, Eq.~5.1\,$'$):} em vez de multar,
+      \emph{desliga o pr\^emio} --- os termos de energia ($w_2$) s\'o entram no
+      reward quando o SLA passa.
+  \end{itemize}
+  \vspace{1mm}
+  {\small Ambas implementadas e testadas: \textbf{87 testes aprovados}; detalhes
+  e a auditoria adversarial no pr\'oximo slide.}
+\end{frame}
+% [SPEAKER NOTE]: "Se o orientador levar UMA frase deste slide, que seja esta:
+% o bônus de energia só é pago com o serviço cumprido. A equação é uma multa
+% controlada por lambda — e varremos uma grade de lambdas, cada um virando um
+% ponto na fronteira, do agressivo ao conservador. A via alternativa nem
+% multa: simplesmente desliga o prêmio quando o SLA falha. Os detalhes
+% técnicos — por que o dual clássico diverge — vêm no próximo slide."
+
+% ========================================================================
+% SLIDE 12 -- CMDP REV.1 (detalhes tecnicos)
+% ========================================================================
+\begin{frame}{Frente 2 (detalhes) --- Grade Lagrangiana e Porta Suave Auditadas (Rev.\ 1)}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{alertblock}{Por que o dual primal--dual ingênuo diverge \emph{offline}}
+        \small Custo hinge médio do dataset: $\bar{c}_{\mathcal{D}} = 0{,}0757
+        > \delta = 0{,}05$ $\Rightarrow$ deriva dual $+2{,}57\times10^{-4}$/passo;
+        $\lambda \approx 12{,}9$ em 50k passos e \textbf{satura
+        $\lambda_{\max}{=}100$ em ${\approx}388$k} (dentro do orçamento de
+        1{,}2M). Em $\lambda{=}12{,}9$: penalidade $\lambda c$ até
+        $\mathbf{9{,}1}$ $\gg |r| \approx 0{,}1$--$0{,}5$. Com dataset fixo, a
+        média de lote é a constante do comportamento --- o dual não persegue
+        ponto de sela.
+      \end{alertblock}
+      \begin{block}{Ajustes blindados A1--A5 (parecer adversarial incorporado)}
+        \small A1: regra de coerência $\delta \times \bar{c}_{\mathcal{D}}$
+        pré-treino; A2: crítico de custo $V_c(s)$ + $\hat{J}_c$ sob a política
+        corrente (FQE/MC, Robbins--Monro com teto); A5: correção do wrapper
+        PPO-SB3.
+      \end{block}
+    \end{column}
+    \begin{column}{0.50\textwidth}
+      \begin{exampleblock}{Via 1 --- Grade Lagrangiana \emph{offline} (A3--A4)}
+        \small
+        \begin{equation*}
+          r_\lambda = r - \lambda\,\max\!\big(0,\ \tau_{\text{SLA}} -
+          \bar{\rho}^{(W)}\big)
+        \end{equation*}
+        Grade fixa $\lambda \in \{0;\,0{,}5;\,1;\,2;\,5;\,10\}$,
+        $\lambda_{\max} = 10$, guarda $\lambda\bar{c}/|\bar{r}| \le 5$.
+        \textbf{Cada $\lambda$ = um ponto candidato na fronteira de Pareto}
+        (treino offline é barato; caro é o live).
+      \end{exampleblock}
+      \begin{exampleblock}{Via 2 --- Porta suave de SLA, Eq.~(5.1\,$'$)}
+        \small
+        \begin{equation*}
+          r' = w_1\rho - w_3\varsigma - w_4\delta
+               - g_{\tau}\!\big(\bar{\rho}^{(W)}\big)\cdot
+                 \big(\textcolor{alertred}{w_2\hat{\gamma}} +
+                 \textcolor{alertred}{w_2\hat{B}_{sON}}\big)
+        \end{equation*}
+        \textbf{Ambos} os canais de $w_2$ entram \emph{dentro} do gate: fora
+        dele, a política deixa de ser paga por desligar BS violando o SLA.
+        Porta suave = padrão (porta dura esparsa em 25--34\% das indicações,
+        $W{=}10$). Estado aumentado com a janela $\bar{\rho}^{(W)}$
+        (markovianidade): \texttt{full+gate} 86 / \texttt{compact+gate} 79 /
+        \texttt{compact70+gate} 71 dims. \ \emph{Suíte: 87 testes aprovados.}
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+% [SPEAKER NOTE]: "Submetemos o próprio design a um parecer adversarial e ele
+% derrubou o dual clássico: com dataset fixo o multiplicador satura e a
+% penalidade engole o reward — números medidos, não opinião. A resposta está à
+% direita e já está codificada com 87 testes verdes: uma grade de lambdas (cada
+% um vira um ponto no Pareto) e a porta de SLA que coloca os DOIS termos de w2
+% dentro do gate. É correção estrutural, não um band-aid de pesos."
+
+% ========================================================================
+% SLIDE 10 -- FRENTE 4: AUDITORIA ALGEBRICA DE ESTADO
+% ========================================================================
+\begin{frame}{Frente 4 --- Auditoria Alg\'ebrica de Estado: $85 \to 70$ KPMs via SVD}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{table}
+        \centering\scriptsize
+        \renewcommand{\arraystretch}{1.12}
+        \begin{tabular}{@{}p{3.3cm}cp{3.6cm}@{}}
+          \toprule
+          \textbf{15 dims removidas} & \textbf{Índices} & \textbf{Redundância exata} \\
+          \midrule
+          $7\times$ \texttt{mac\_pdu\_64qam} & 9, 21, 33, 45, 57, 69, 81 &
+            cópia bit a bit de \texttt{tb\_64qam} ($r = 1{,}0$;
+            \texttt{es\_env.py:842/844}) \\
+          $7\times$ \texttt{prb\_percentage} & 6, 18, 30, 42, 54, 66, 78 &
+            afim exata de \texttt{prb\_used} ($\div139{\times}100$; $r=1{,}0$;
+            máx $|$dif$| = 1{,}5\!\times\!10^{-8}$) \\
+          $1\times$ \texttt{bs\_on} & 84 &
+            soma exata dos 7 \texttt{cell\_state}
+            (máx $|$dif$| = 1{,}8\!\times\!10^{-7}$) \\
+          \bottomrule
+        \end{tabular}
+      \end{table}
+      \begin{exampleblock}{Fechamento numérico (2 datasets reais, 4.158 linhas)}
+        \small $\text{rank}(X_{85}) = \text{rank}(X_{78}) =
+        \text{rank}(X_{70}) = \mathbf{70}$ (tol $10^{-8}$); condição
+        $\approx 5{,}3\!\times\!10^{20}$ (base) e
+        $4{,}9\!\times\!10^{20}$ (d1d3). O compacto-78 ``herdado'' ainda
+        carregava \textbf{8 colinearidades exatas}; o \textbf{compact70 tem
+        posto completo}.
+      \end{exampleblock}
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \begin{block}{Ganho para IQL/CQL ($\approx$3.400--4.000 transições)}
+        \centering\small
+        \begin{tabular}{@{}lrr@{}}
+          \toprule
+           & 85 dims & \textbf{70 dims} \\
+          \midrule
+          $N/d$ (N $=$ 4.000) & 47,1 & \textbf{57,1} \\
+          $N/d$ (N $=$ 3.400) & 40,0 & \textbf{48,6} \\
+          pesos $1^{\text{a}}$ camada (512) & 43.520 & \textbf{35.840} \\
+          \bottomrule
+        \end{tabular}
+        \vspace{1mm}\\
+        \small $+$21\% de transições por dimensão \emph{sem coletar nada
+        novo}; $-17{,}6\%$ de pesos; fim dos mínimos quadrados mal-postos nos
+        regressores de valor. Eq.~(2) intacta (usa totais brutos de
+        \texttt{raw\_kpms}, não o estado).
+      \end{block}
+      \vspace{-1mm}
+      \datapath{STATE\_VARIANTS["compact70"] $\cdot$ config.py:90--133 $\cdot$ kpm\_audit.md}
+    \end{column}
+  \end{columns}
+\end{frame}
+% [SPEAKER NOTE]: "O estado de 85 dimensões do artigo nunca teve 85 graus de
+% liberdade: o SVD nos dois datasets reais mostra posto 70, e os 15 graus
+% perdidos são exatamente duplicatas e somas que listamos com arquivo e linha.
+% Cortar para 70 não joga informação fora — melhora a razão amostras por
+% dimensão em 21% e encolhe a rede, o que importa muito com um dataset offline
+% pequeno. Sem risco à fidelidade: a Eq. 2 usa os totais brutos."
+
+% ========================================================================
+% SLIDE 11 -- TABELA III: MATRIZ EXPERIMENTAL E POSICIONAMENTO
+% ========================================================================
+\begin{frame}{Matriz Experimental de Estado da Arte (Tabela III) \& Posicionamento}
+  \begin{table}
+    \centering\scriptsize
+    \setlength{\tabcolsep}{3.2pt}
+    \renewcommand{\arraystretch}{1.1}
+    \begin{tabular}{@{}llcccc@{}}
+      \toprule
+      \textbf{Grupo} & \textbf{Política / agente} & $\boldsymbol{\Delta E}$ &
+      $\boldsymbol{\Delta\text{Thr}}$ & \textbf{RLF} & \textbf{Status} \\
+      \midrule
+      \multirow{4}{*}{Baselines reais} & Always-On & $0{,}0\%$ & $0{,}0\%$ & máx 18 &
+        \textcolor{okgreen}{medido 5/5} \\
+       & Static (3,2,2) & $+12{,}1\%$ & $-20{,}0\%$ & máx 20 &
+         \textcolor{okgreen}{medido 5/5} \\
+       & Dynamic (3,2,2) & $+12{,}2\%$ & $-23{,}9\%$ & máx 22 &
+         \textcolor{okgreen}{medido 5/5} \\
+       & Random & $+21{,}4\%$ & $-61{,}7\%$ & máx 48 &
+         \textcolor{okgreen}{medido 5/5} \\
+      \midrule
+      \multirow{2}{*}{Artigo base (publicado)} & PPO-2 & $+24{,}2\%$ & $-52{,}3\%$ & máx 2 (relatado) &
+        \textcolor{darkgray}{valores do texto} \\
+       & DQN (REM+CQL) & $+1{,}3\%$ & $-9{,}6\%$ & máx 1 (relatado) &
+         \textcolor{darkgray}{valores do texto} \\
+      \midrule
+      \multirow{3}{*}{E2: sem restrição} & BC (replay ponderado) & --- & --- & --- &
+        \targetexp{IQL/CMDP} \\
+       & CQL (REM-DQN) & --- & --- & --- & \targetexp{IQL/CMDP} \\
+       & IQL puro (D4) & --- & --- & --- & \targetexp{IQL/CMDP} \\
+      \midrule
+      \multirow{2}{*}{\textbf{E1: nosso}} & \textbf{IQL/CQL + CMDP Lagr.} &
+        \textbf{$\ge 10\%$} & $\boldsymbol{\ge -10\%}$ & $\boldsymbol{\le 2}$ &
+        \targetexp{IQL/CMDP} \\
+       & \textbf{IQL + porta de SLA (5.1\,$'$)} & $\mathbf{\ge 10\%}$ &
+         $\boldsymbol{\ge -10\%}$ & $\boldsymbol{\le 2}$ & \targetexp{IQL/CMDP} \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+  \vspace{-1mm}
+  \begin{block}{Por que \emph{um} artigo unificado (Diagnóstico + Solução)}
+    \small O diagnóstico isolado é um \emph{negative result} de workshop; a
+    solução isolada perde a motivação. Juntos: um \textbf{benchmark QoS-aware
+    completo} --- auditoria D1--D4 + reward hacking quantificado + Pareto com
+    piso de SLA + CMDP/offline RL + compact70 + protocolo de 5 seeds ---
+    com impacto direto para \textbf{IEEE TNSM / TWC} ou conferência
+    \emph{flagship}; nenhum dos 27 trabalhos da nossa matriz faz restrição de
+    QoS no treino com os 85 KPMs e avaliação live em ns-3.
+  \end{block}
+\end{frame}
+% [SPEAKER NOTE]: "A tabela final do artigo: baselines medidos, os valores
+% publicados, os braços de comparação offline e as duas linhas que são nossas —
+% os azuis ainda a preencher com o treino. Argumento de publicação: diagnosticar
+% sem resolver vira workshop; resolver sem diagnosticar vira 'mais um agente'.
+    % O pacote completo — benchmark + diagnóstico + solução — é um Transactions."
+
+% ========================================================================
+% SLIDE 12 -- CRONOGRAMA
+% ========================================================================
+\begin{frame}{Cronograma de Fechamento \& Pr\'oximos 4 Comandos}
+  \begin{enumerate}
+    \item \textbf{Rerun cirúrgico dos 6 jobs pendentes $\to$ 40/40}
+      ($\approx$9 h de máquina; mortes em 1,1--9,9 s $\Rightarrow$ custo real
+      8--90 min/run; patch IHL ativo; \texttt{gdb -batch} nos 3 casos de
+      SACK antes de qualquer segundo patch).\\
+      \datapath{scripts/run\_paper\_baselines.py -{}-only <jobs 5,6,18,26,38,39> -{}-force}
+    \item \textbf{Tabelas atualizadas $21 \to 40/40$ + dataset final em
+      \texttt{compact70}} (e \texttt{compact70+gate} $\Rightarrow$ 71 dims),
+      com calibração quantílica \emph{antes} da conversão.\\
+      \datapath{analysis/recompute\_baselines.py $\cdot$ collect\_real\_dataset.py
+      -{}-state-variant compact70 $\cdot$ fit\_reward\_calibration.py}
+    \item \textbf{Treino da grade IQL/CQL} $\lambda \in \{0;\,0{,}5;\,1;\,2;\,5;\,10\}$,
+      $\lambda_{\max}=10$ (rápido: offline em CPU/GPU) $+$ seleção dos melhores
+      pontos para avaliação \emph{live} em \textbf{5 seeds}.\\
+      \datapath{examples/ppo\_2.py -{}-dataset <40runs>.npz -{}-offline-algo iql
+      $\times$ grade $\lambda$}
+    \item \textbf{Fig.\ 3 definitiva (Pareto com o agente) e congelamento do
+      manuscrito IEEEtran} --- alvo quantitativo pré-registrado:
+      $\Delta E \in [10,20]\%$ com $\Delta\text{Thr} \ge -10\%$ e
+      RLF $\le 2$, IC95 sobre 5 seeds.\\
+      \datapath{pareto\_build.py $\cdot$ docs/plano\_tecnico/ $\cdot$
+      PITCH\_ORIENTADOR\_RESULTADOS.md \S4.3}
+  \end{enumerate}
+  \vspace{1mm}
+  \begin{beamercolorbox}[wd=\textwidth,sep=2pt]{block body example}
+    \small \textbf{Gate de qualidade já verde:} 87 testes $\cdot$ build ns-3
+    exit 0 $\cdot$ Pareto conferido de forma independente (0,00 pp de
+    desvio) $\cdot$ 100\% dados reais, zero \texttt{-{}-synthetic}.
+  \end{beamercolorbox}
+\end{frame}
+% [SPEAKER NOTE]: "O caminho até o manuscrito são estes quatro passos: repor os
+% 6 runs para a tabela simétrica 8x5, regenerar tudo em compact70, treinar a
+% grade de lambdas — que é barata — e avaliar os melhores pontos no simulador
+% com 5 seeds. O que já está verde: testes, build e a conferência independente
+% do Pareto. Pergunta ao orientador: aprova o plano e o alvo quantitativo
+% pré-registrado para eu disparar a campanha?"
+
+\end{document}

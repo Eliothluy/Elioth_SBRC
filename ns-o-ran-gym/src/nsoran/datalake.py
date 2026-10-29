@@ -57,6 +57,8 @@ class SQLiteDatabaseAPI:
         "timestamp": "INTEGER",
         "ueImsiComplete": "INTEGER",
         "cellId": "INTEGER",
+        "DRB.PdcpSduDelayDl(cellAverageLatency)": "REAL",
+        "DRB.PdcpSduDelayDl.UEID(pdcpLatency)": "REAL",
         "QosFlow.PdcpPduVolumeDL_Filter.UEID(txPdcpPduBytesNrRlc)": "REAL",
         "DRB.PdcpPduNbrDl.Qos.UEID (txPdcpPduNrRlc)": "REAL"
     }

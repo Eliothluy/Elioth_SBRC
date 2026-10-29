@@ -153,6 +153,8 @@ def collect_runs(
             "rlf_max": metrics["rlf_max"],
             "bs_on_mean": metrics["bs_on_mean"],
             "activation_mean": metrics["activation_mean"],
+            "pdcp_latency_median": metrics.get("pdcp_latency_median"),
+            "pdcp_latency_p95": metrics.get("pdcp_latency_p95"),
         })
         complete = metrics["indications"] >= PAPER_INDICATIONS and status == "ok"
         row["comparable"] = "yes" if complete else "no"
@@ -185,6 +187,9 @@ def aggregate(rows: list[dict[str, Any]]) -> tuple[list[dict], list[dict]]:
     ref_thr = summarise([r["throughput_mean"] for r in always_on])["mean"]
     ref_energy = summarise([r["energy_mean"] for r in always_on])["mean"]
     ref_intensity = ref_energy / ref_thr if ref_thr else float("nan")
+    ref_lat_p95 = summarise(
+        [r["pdcp_latency_p95"] for r in always_on if r.get("pdcp_latency_p95") is not None]
+    )["mean"]
 
     for policy in POLICY_ORDER:
         subset = [r for r in rows if r["policy"] == policy and r["comparable"] == "yes"]
@@ -209,10 +214,20 @@ def aggregate(rows: list[dict[str, Any]]) -> tuple[list[dict], list[dict]]:
             "rlf_mean": rlf["mean"],
             "rlf_max": rlf_max["max"],
             "bs_on_mean": bs_on["mean"],
+            "pdcp_latency_median": summarise(
+                [r["pdcp_latency_median"] for r in subset if r.get("pdcp_latency_median") is not None]
+            )["mean"],
+            "pdcp_latency_p95": summarise(
+                [r["pdcp_latency_p95"] for r in subset if r.get("pdcp_latency_p95") is not None]
+            )["mean"],
             "energy_per_throughput": intensity_mean,
             "throughput_delta_pct": 100.0 * (thr["mean"] - ref_thr) / ref_thr if ref_thr else float("nan"),
             "energy_delta_pct": 100.0 * (energy["mean"] - ref_energy) / ref_energy if ref_energy else float("nan"),
             "intensity_ratio_vs_always_on": intensity_mean / ref_intensity if ref_intensity else float("nan"),
+            "pdcp_latency_p95_ratio_vs_always_on": (
+                summarise([r["pdcp_latency_p95"] for r in subset if r.get("pdcp_latency_p95") is not None])["mean"] / ref_lat_p95
+                if ref_lat_p95 else float("nan")
+            ),
             "seeds": ",".join(str(r["seed"]) for r in sorted(subset, key=lambda x: x["seed"])),
             "tuples": ",".join(sorted({r["tuple"] for r in subset if r["tuple"]})) or "—",
         })
@@ -233,6 +248,9 @@ def aggregate(rows: list[dict[str, Any]]) -> tuple[list[dict], list[dict]]:
                 "energy_mean": energy["mean"],
                 "rlf_mean": summarise([r["rlf_mean"] for r in group])["mean"],
                 "bs_on_mean": summarise([r["bs_on_mean"] for r in group])["mean"],
+                "pdcp_latency_p95": summarise(
+                    [r["pdcp_latency_p95"] for r in group if r.get("pdcp_latency_p95") is not None]
+                )["mean"],
                 "energy_per_throughput": intensity_mean,
                 "throughput_delta_pct": 100.0 * (thr["mean"] - ref_thr) / ref_thr if ref_thr else float("nan"),
                 "energy_delta_pct": 100.0 * (energy["mean"] - ref_energy) / ref_energy if ref_energy else float("nan"),
@@ -249,6 +267,7 @@ PER_RUN_FIELDS = [
     "run_name", "policy", "tuple", "seed", "status", "duration_s",
     "sim_time_covered_s", "indications", "throughput_mean", "energy_mean",
     "rlf_mean", "rlf_max", "bs_on_mean", "activation_mean",
+    "pdcp_latency_median", "pdcp_latency_p95",
     "energy_per_throughput", "comparable", "note", "run_dir",
 ]
 
@@ -285,8 +304,9 @@ def write_markdown(
     out.append("## Por política")
     table = [
         "| política | runs | throughput (média ± IC95) | energia (média ± IC95) | RLF médio | "
-        "RLF máx | BS ligadas | Δthr % | Δenergia % | intensidade E/thr vs Always-On |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "RLF máx | BS ligadas | Δthr % | Δenergia % | intensidade E/thr vs Always-On | "
+        "latência PDCP p95 (ms) |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for row in by_policy:
         table.append(
@@ -296,7 +316,8 @@ def write_markdown(
             f"{_fmt(row['rlf_mean'], 2)} | {_fmt(row['rlf_max'], 0)} | "
             f"{_fmt(row['bs_on_mean'], 2)} | {_fmt(row['throughput_delta_pct'], 2)} | "
             f"{_fmt(row['energy_delta_pct'], 2)} | "
-            f"{_fmt(row['intensity_ratio_vs_always_on'], 3)} |"
+            f"{_fmt(row['intensity_ratio_vs_always_on'], 3)} | "
+            f"{_fmt(row.get('pdcp_latency_p95'), 1)} |"
         )
     out.append("\n".join(table))
     out.append(
@@ -325,8 +346,8 @@ def write_markdown(
     )
     table = [
         "| política | tupla (N_On,P1,N_On,P2,N_Off) | runs | throughput | energia | RLF | "
-        "BS ligadas | Δthr % | Δenergia % | E/thr vs Always-On |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "BS ligadas | Δthr % | Δenergia % | E/thr vs Always-On | p95 lat (ms) |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for row in by_tuple:
         table.append(
@@ -334,7 +355,8 @@ def write_markdown(
             f"{_fmt(row['throughput_mean'], 0)} | {_fmt(row['energy_mean'], 1)} | "
             f"{_fmt(row['rlf_mean'], 2)} | {_fmt(row['bs_on_mean'], 2)} | "
             f"{_fmt(row['throughput_delta_pct'], 2)} | {_fmt(row['energy_delta_pct'], 2)} | "
-            f"{_fmt(row['intensity_ratio_vs_always_on'], 3)} |"
+            f"{_fmt(row['intensity_ratio_vs_always_on'], 3)} | "
+            f"{_fmt(row.get('pdcp_latency_p95'), 1)} |"
         )
     out.append("\n".join(table))
 

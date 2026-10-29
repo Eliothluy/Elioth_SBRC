@@ -27,6 +27,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -66,6 +67,38 @@ def _expand_runs(directory: Path) -> list[Path]:
         for child in directory.iterdir()
         if child.is_dir() and (child / "database.db").is_file()
     )
+
+
+def pdcp_latency_stats(run_dirs: list[Path]) -> dict:
+    """Median/p95 of the per-line downlink PDCP SDU delay (ms, TS 28.552).
+
+    Reads the raw ``cu-up-cell-*.txt`` traces directly: the legacy
+    ``gnb_cu_up`` SQLite table used to drop these two columns, so this works
+    for every run already on disk (6.237 samples per complete run =
+    63 UEs x 99 indications).
+    """
+
+    column = "DRB.PdcpSduDelayDl(cellAverageLatency)"
+    values: list[float] = []
+    for run_dir in run_dirs:
+        for file_path in sorted(run_dir.glob("cu-up-cell-*.txt")):
+            with open(file_path, "r") as handle:
+                for row in csv.DictReader(handle):
+                    raw = (row.get(column) or "").strip()
+                    if raw:
+                        values.append(float(raw))
+    if not values:
+        return {
+            "pdcp_latency_median": None,
+            "pdcp_latency_p95": None,
+            "pdcp_latency_samples": 0,
+        }
+    arr = np.asarray(values, dtype=float)
+    return {
+        "pdcp_latency_median": float(np.median(arr)),
+        "pdcp_latency_p95": float(np.percentile(arr, 95)),
+        "pdcp_latency_samples": int(arr.size),
+    }
 
 
 def run_metrics(
@@ -115,6 +148,7 @@ def run_metrics(
         "activation_mean": float(activation.mean()) if activation.size else 0.0,
         "bs_on_mean": float(bs_on.mean()) if bs_on.size else 0.0,
         "bs_on_min": float(bs_on.min()) if bs_on.size else 0.0,
+        **pdcp_latency_stats(run_dirs),
     }
 
 

@@ -179,6 +179,41 @@ def build_parser(agent: Any) -> argparse.ArgumentParser:
             help="Optional periodic checkpoint period (gradient steps).",
         )
 
+    cmdp_group = parser.add_argument_group(
+        "CMDP / QoS constraint (E1)",
+        "Constrained reward of cmdp_design.md Rev. 1 (forwarded to the trainer).",
+    )
+    cmdp_group.add_argument(
+        "--cmdp-mode",
+        choices=("none", "lagrangian", "barrier"),
+        default="none",
+        help="'lagrangian' adds the QoS hinge penalty (r - lambda*max(0, tau - rho));"
+        " 'none' keeps the paper Eq. (2) intact.",
+    )
+    cmdp_group.add_argument(
+        "--qos-throughput-min",
+        type=float,
+        default=None,
+        help="tau_SLA in raw ns-3 units (bytes per indication window).",
+    )
+    cmdp_group.add_argument(
+        "--qos-rlf-max",
+        type=float,
+        default=None,
+        help="epsilon: maximum tolerated RLF (raw units).",
+    )
+    cmdp_group.add_argument("--qos-throughput-scale", type=float, default=None)
+    cmdp_group.add_argument("--qos-rlf-scale", type=float, default=None)
+    cmdp_group.add_argument(
+        "--qos-lambda-lr",
+        type=float,
+        default=None,
+        help="Dual learning rate; 0 freezes lambda (A3 fixed grid).",
+    )
+    cmdp_group.add_argument("--qos-lambda-init", type=float, default=None)
+    cmdp_group.add_argument("--qos-lambda-max", type=float, default=None)
+    cmdp_group.add_argument("--qos-tolerance", type=float, default=None)
+
     eval_group = parser.add_argument_group("evaluation")
     eval_group.add_argument(
         "--evaluate",
@@ -375,6 +410,21 @@ def _training_argv(
         ]
         if args.checkpoint_freq is not None:
             argv += ["--checkpoint-freq", str(args.checkpoint_freq)]
+    if getattr(args, "cmdp_mode", "none") != "none":
+        argv += ["--cmdp-mode", str(args.cmdp_mode)]
+        for flag in (
+            "qos_throughput_min",
+            "qos_rlf_max",
+            "qos_throughput_scale",
+            "qos_rlf_scale",
+            "qos_lambda_lr",
+            "qos_lambda_init",
+            "qos_lambda_max",
+            "qos_tolerance",
+        ):
+            value = getattr(args, flag, None)
+            if value is not None:
+                argv += ["--" + flag.replace("_", "-"), str(value)]
     return argv
 
 

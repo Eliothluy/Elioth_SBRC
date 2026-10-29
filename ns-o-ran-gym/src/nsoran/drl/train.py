@@ -379,8 +379,8 @@ def _run(args: argparse.Namespace) -> Dict[str, Any]:
     offline_algo = getattr(args, "offline_algo", "auto")
     if offline_algo == "auto":
         # D4: PPO-* agents use discrete IQL by default; the replay pipeline is
-        # kept as an explicit ablation.
-        offline_algo = "iql"
+        # kept as an explicit ablation. The DQN agent is REM-DQN + CQL itself.
+        offline_algo = "iql" if args.algo == "ppo" else "rem_dqn"
     if args.algo != "ppo" and offline_algo == "iql":
         raise ValueError(
             "--offline-algo iql is only available for PPO-* agents; "
